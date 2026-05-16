@@ -1,0 +1,41 @@
+name: EMA Volume Scanner
+
+on:
+  schedule:
+    # Runs Mon-Fri at 4:30 PM ET (21:30 UTC) - after market close
+    - cron: '30 21 * * 1-5'
+  workflow_dispatch:  # allows manual trigger from GitHub UI
+
+jobs:
+  run-scanner:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install pandas requests yfinance
+
+      - name: Run scanner
+        env:
+          ALERT_METHOD: email
+          EMAIL_SENDER: ${{ secrets.EMAIL_SENDER }}
+          EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
+          EMAIL_RECIPIENT: ${{ secrets.EMAIL_RECIPIENT }}
+          MIN_CONFIDENCE: '6.0'
+        run: |
+          python scanner_alert_system.py
+
+      - name: Upload scan CSV as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: scan-results
+          path: automated_scan_*.csv
+          retention-days: 30
